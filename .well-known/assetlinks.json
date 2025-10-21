@@ -1,11 +1,12 @@
 [
   {
     "relation": [
-      "delegate_permission/common.use_as_origin" 
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.use_as_origin"
     ],
     "target": {
       "namespace": "android_app",
-      "package_name": "com.gaditek.purevpnics", 
+      "package_name": "com.gaditek.purevpnics",
       "sha256_cert_fingerprints": [
         "C5:27:21:2D:D2:36:F9:0C:5B:AE:80:31:A0:D6:D6:18:F8:21:57:77:D7:FD:81:0F:40:B5:B1:6A:FD:8F:AC:2A"
       ]
