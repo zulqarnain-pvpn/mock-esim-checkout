@@ -24,21 +24,15 @@
                 // This is the correct API to talk to the app
                 CustomTabsClient.postMessage(message, null);
                 
-                // --- THIS IS NEW ---
                 // Show a success alert in the browser
                 alert('Message SENT: ' + message);
-                // --- END NEW ---
 
             } catch (e) {
                 console.error('Error sending message:', e);
 
-                // --- THIS IS NEW ---
                 // Show an error alert in the browser
                 alert('ERROR: CustomTabsClient.postMessage is not available.\n\nAre you in a Custom Tab?\n\n' + e);
-                // --- END NEW ---
             }
         }
-    </GCRIPT>
-
-</body>
+    </script> </body>
 </html>
