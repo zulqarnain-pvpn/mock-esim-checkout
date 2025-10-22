@@ -12,54 +12,63 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
     <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg text-center">
-        <!-- Header -->
         <h1 class="text-3xl font-bold text-gray-800 mb-2">CCT Message Channel Test</h1>
         <p class="text-sm text-gray-500 mb-8">Click a button below to send a status message back to the native app.</p>
 
-        <!-- Message Sending Functions -->
         <script>
             /**
              * Sends a message back to the native Android app via the Chrome Custom Tabs Post Message API.
              * @param {string} statusMessage - The status code to send.
              */
             function sendPostMessage(statusMessage) {
-                console.log(`Sending message: ${statusMessage}`);
+                console.log(`Attempting to send message: ${statusMessage}`);
                 
-                // CRITICAL: Send the message to the parent window (the CCT session).
-                // The '*' targetOrigin is used here for simplicity in testing.
-                window.postMessage(statusMessage, '*');
+                // --- THIS IS THE FIX ---
+                // Use CustomTabsClient.postMessage, not window.postMessage
+                try {
+                    // CustomTabsClient is injected by the CCT
+                    CustomTabsClient.postMessage(statusMessage, null);
+                    
+                    // Update UI after sending message
+                    const resultDiv = document.getElementById('result-message');
+                    resultDiv.textContent = `Message Sent: ${statusMessage}. Check Android Logcat!`;
+                    resultDiv.classList.remove('hidden');
+                    resultDiv.classList.remove('bg-red-100', 'bg-green-100');
 
-                // Update UI after sending message
-                const resultDiv = document.getElementById('result-message');
-                resultDiv.textContent = `Message Sent: ${statusMessage}. Check Android Logcat!`;
-                resultDiv.classList.remove('hidden');
-                resultDiv.classList.remove('bg-red-100', 'bg-green-100');
+                    if (statusMessage.includes('success')) {
+                        resultDiv.classList.add('bg-green-100', 'text-green-800');
+                    } else {
+                        resultDiv.classList.add('bg-red-100', 'text-red-800');
+                    }
 
-                if (statusMessage.includes('success')) {
-                    resultDiv.classList.add('bg-green-100', 'text-green-800');
-                } else {
+                } catch (e) {
+                    console.error("Error sending postMessage to app:", e);
+                    
+                    // Show an error in the UI
+                    const resultDiv = document.getElementById('result-message');
+                    resultDiv.textContent = `Error: CustomTabsClient.postMessage is not available. Are you running inside a Custom Tab?`;
+                    resultDiv.classList.remove('hidden');
                     resultDiv.classList.add('bg-red-100', 'text-red-800');
                 }
+                // --- END OF FIX ---
             }
         </script>
 
-        <!-- Status Message Area -->
         <div id="result-message" class="hidden p-4 rounded-lg font-semibold transition duration-300 mb-6 border"></div>
 
-        <!-- Action Buttons -->
         <div class="space-y-4">
             <button 
                 onclick="sendPostMessage('esim_web_checkout_success')"
                 class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
             >
-                1. Send SUCCESS: esim\_web\_checkout\_success
+                1. Send SUCCESS: esim_web_checkout_success
             </button>
 
             <button 
                 onclick="sendPostMessage('esim_web_checkout_failure')"
                 class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50"
             >
-                2. Send FAILURE: esim\_web\_checkout\_failure
+                2. Send FAILURE: esim_web_checkout_failure
             </button>
         </div>
         
