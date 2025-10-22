@@ -16,38 +16,26 @@
         <p class="text-sm text-gray-500 mb-8">Click a button below to send a status message back to the native app.</p>
 
         <script>
-            /**
-             * Sends a message back to the native Android app via the Chrome Custom Tabs Post Message API.
-             * @param {string} statusMessage - The status code to send.
-             */
             function sendPostMessage(statusMessage) {
                 console.log(`Attempting to send message: ${statusMessage}`);
+                const resultDiv = document.getElementById('result-message');
                 
-                // --- THIS IS THE FIX ---
-                // Use CustomTabsClient.postMessage, not window.postMessage
+                // --- THIS IS THE CRITICAL FIX ---
                 try {
-                    // CustomTabsClient is injected by the CCT
+                    // This is the correct API to talk to the app
                     CustomTabsClient.postMessage(statusMessage, null);
                     
-                    // Update UI after sending message
-                    const resultDiv = document.getElementById('result-message');
+                    // Update UI
                     resultDiv.textContent = `Message Sent: ${statusMessage}. Check Android Logcat!`;
-                    resultDiv.classList.remove('hidden');
-                    resultDiv.classList.remove('bg-red-100', 'bg-green-100');
-
-                    if (statusMessage.includes('success')) {
-                        resultDiv.classList.add('bg-green-100', 'text-green-800');
-                    } else {
-                        resultDiv.classList.add('bg-red-100', 'text-red-800');
-                    }
+                    resultDiv.classList.remove('hidden', 'bg-red-100', 'text-red-800');
+                    resultDiv.classList.add('bg-green-100', 'text-green-800');
 
                 } catch (e) {
                     console.error("Error sending postMessage to app:", e);
                     
-                    // Show an error in the UI
-                    const resultDiv = document.getElementById('result-message');
+                    // This will now show you an error if the API is missing
                     resultDiv.textContent = `Error: CustomTabsClient.postMessage is not available. Are you running inside a Custom Tab?`;
-                    resultDiv.classList.remove('hidden');
+                    resultDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800');
                     resultDiv.classList.add('bg-red-100', 'text-red-800');
                 }
                 // --- END OF FIX ---
@@ -63,7 +51,6 @@
             >
                 1. Send SUCCESS: esim_web_checkout_success
             </button>
-
             <button 
                 onclick="sendPostMessage('esim_web_checkout_failure')"
                 class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50"
