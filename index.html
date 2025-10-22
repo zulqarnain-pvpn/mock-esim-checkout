@@ -1,65 +1,44 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MOCK eSIM Checkout Test</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-        body { font-family: 'Inter', sans-serif; }
-    </style>
+    <title>Minimal CCT Test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg text-center">
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">CCT Message Channel Test</h1>
-        <p class="text-sm text-gray-500 mb-8">Click a button below to send a status message back to the native app.</p>
+<body>
 
-        <script>
-            function sendPostMessage(statusMessage) {
-                console.log(`Attempting to send message: ${statusMessage}`);
-                const resultDiv = document.getElementById('result-message');
+    <h1>Minimal PostMessage Test</h1>
+
+    <button onclick="sendMsg('esim_web_checkout_success')" style="font-size: 20px; padding: 15px; margin: 10px; background-color: #4CAF50; color: white;">
+        Send SUCCESS
+    </button>
+    
+    <button onclick="sendMsg('esim_web_checkout_failure')" style="font-size: 20px; padding: 15px; margin: 10px; background-color: #f44336; color: white;">
+        Send FAILURE
+    </button>
+
+    <script>
+        function sendMsg(message) {
+            console.log('Attempting to send:', message);
+
+            try {
+                // This is the correct API to talk to the app
+                CustomTabsClient.postMessage(message, null);
                 
-                // --- THIS IS THE CRITICAL FIX ---
-                try {
-                    // This is the correct API to talk to the app
-                    CustomTabsClient.postMessage(statusMessage, null);
-                    
-                    // Update UI
-                    resultDiv.textContent = `Message Sent: ${statusMessage}. Check Android Logcat!`;
-                    resultDiv.classList.remove('hidden', 'bg-red-100', 'text-red-800');
-                    resultDiv.classList.add('bg-green-100', 'text-green-800');
+                // --- THIS IS NEW ---
+                // Show a success alert in the browser
+                alert('Message SENT: ' + message);
+                // --- END NEW ---
 
-                } catch (e) {
-                    console.error("Error sending postMessage to app:", e);
-                    
-                    // This will now show you an error if the API is missing
-                    resultDiv.textContent = `Error: CustomTabsClient.postMessage is not available. Are you running inside a Custom Tab?`;
-                    resultDiv.classList.remove('hidden', 'bg-green-100', 'text-green-800');
-                    resultDiv.classList.add('bg-red-100', 'text-red-800');
-                }
-                // --- END OF FIX ---
+            } catch (e) {
+                console.error('Error sending message:', e);
+
+                // --- THIS IS NEW ---
+                // Show an error alert in the browser
+                alert('ERROR: CustomTabsClient.postMessage is not available.\n\nAre you in a Custom Tab?\n\n' + e);
+                // --- END NEW ---
             }
-        </script>
+        }
+    </GCRIPT>
 
-        <div id="result-message" class="hidden p-4 rounded-lg font-semibold transition duration-300 mb-6 border"></div>
-
-        <div class="space-y-4">
-            <button 
-                onclick="sendPostMessage('esim_web_checkout_success')"
-                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
-            >
-                1. Send SUCCESS: esim_web_checkout_success
-            </button>
-            <button 
-                onclick="sendPostMessage('esim_web_checkout_failure')"
-                class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50"
-            >
-                2. Send FAILURE: esim_web_checkout_failure
-            </button>
-        </div>
-        
-        <p class="text-xs text-gray-400 mt-6">Remember to adjust the `CHECKOUT_URL` in your Android code to this page's hosted URL.</p>
-    </div>
 </body>
 </html>
