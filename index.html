@@ -1,63 +1,157 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>eSIM Checkout Test</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      padding: 2rem;
-    }
-    button {
-      margin: 1rem;
-      padding: 1rem 2rem;
-      font-size: 1rem;
-      cursor: pointer;
-    }
-    .success { background-color: #4CAF50; color: white; }
-    .failure { background-color: #f44336; color: white; }
-  </style>
-</head>
-<body>
-  <h1>eSIM Checkout Test Page</h1>
-  <p>Use the buttons below to send messages to the Android app via Chrome Custom Tabs.</p>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Esim Checkout Test</title>
+    <!--
+    Digital Asset Links (DAL) Setup (CRITICAL!):
 
-  <button id="success" class="success">Send Success Message</button>
-  <button id="failure" class="failure">Send Failure Message</button>
+    For this page to communicate with your Android app via postMessage,
+    you MUST host a .well-known/assetlinks.json file on this domain
+    (https://esim-checkout.netlify.app).
 
-  <script>
-    const SUCCESS_MESSAGE = "esim_web_checkout_success";
-    const FAILURE_MESSAGE = "esim_web_checkout_failure";
+    The file should be accessible at:
+    https://esim-checkout.netlify.app/.well-known/assetlinks.json
 
-    // Try sending message via postMessage API
-    async function sendMessage(message) {
-      if (!window.chrome || !window.chrome.webview && !window.postMessage) {
-        alert("postMessage API not supported in this context");
-        return;
+    The content of assetlinks.json should look something like this,
+    replacing 'com.purevpn.ui.esim' with your actual package name and
+    'YOUR_SHA256_CERT_FINGERPRINT' with your app's release key fingerprint.
+
+    [{
+      "relation": ["delegate_permission/common.use_as_origin"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.purevpn.ui.esim",
+        "sha256_cert_fingerprints":
+        ["YOUR_SHA256_CERT_FINGERPRINT"]
       }
-
-      try {
-        // Chrome Custom Tabs communication
-        if (window.postMessage) {
-          console.log("Sending message:", message);
-          window.postMessage(message, "*");
-        } else {
-          alert("postMessage not available");
+    }]
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        html, body {
+            height: 100%;
+            font-family: 'Inter', sans-serif;
         }
-      } catch (err) {
-        console.error("Error posting message:", err);
-      }
-    }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 flex items-center justify-center h-full p-4">
 
-    document.getElementById("success").addEventListener("click", () => {
-      sendMessage(SUCCESS_MESSAGE);
-    });
+    <div class="w-full max-w-md bg-white dark:bg-gray-800 shadow-xl rounded-lg p-6 text-center">
+        <h1 class="text-2xl font-bold mb-4">Esim Checkout</h1>
+        <p class="text-gray-600 dark:text-gray-300 mb-6">This page is testing the Chrome Custom Tab callback.</p>
 
-    document.getElementById("failure").addEventListener("click", () => {
-      sendMessage(FAILURE_MESSAGE);
-    });
-  </script>
+        <!-- Status display -->
+        <div id="status-container" class="mb-6 p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <h2 class="text-lg font-semibold mb-2">Communication Status</h2>
+            <p id="status-message" class="text-sm text-yellow-600 dark:text-yellow-400 font-mono">Waiting for connection...</p>
+        </div>
+
+        <!-- Buttons to send messages back to Android -->
+        <div class="flex flex-col sm:flex-row gap-4">
+            <button id="success-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg shadow transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Send Success
+            </button>
+            <button id="cancel-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg shadow transition duration-200 ease-in-out disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                Send Cancel
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // Get references to UI elements
+        const statusMessage = document.getElementById('status-message');
+        const successBtn = document.getElementById('success-btn');
+        const cancelBtn = document.getElementById('cancel-btn');
+
+        let messagePort = null;
+        let isChannelReady = false;
+
+        console.log("Page loaded. Waiting for messageChannel...");
+        updateStatus("Waiting for Android connection...", "yellow");
+
+        // 1. Listen for the 'messageChannel' event from the Custom Tab
+        window.addEventListener("messageChannel", (event) => {
+            console.log("messageChannel event received.");
+            isChannelReady = true;
+            
+            // 2. Save the port for communication
+            messagePort = event.ports[0];
+            
+            updateStatus("Message channel ready!", "green");
+            console.log("Message channel port saved.");
+
+            // 3. Add a listener to the port to receive messages from Android
+            messagePort.onmessage = (event) => {
+                console.log("Message received from Android:", event.data);
+                updateStatus(`Received: "${event.data}"`, "blue");
+
+                // You can optionally do something when you receive "hello_from_android"
+                if (event.data === "hello_from_android") {
+                    console.log("Android says hello!");
+                }
+            };
+            
+            // 4. Enable the buttons now that we can send messages
+            successBtn.disabled = false;
+            cancelBtn.disabled = false;
+            console.log("Buttons enabled.");
+        });
+
+        // 5. Add click listeners to the buttons to send messages to Android
+        successBtn.addEventListener("click", () => {
+            if (messagePort && isChannelReady) {
+                const message = "esim_web_checkout_success";
+                console.log(`Sending message to Android: ${message}`);
+                messagePort.postMessage(message);
+                updateStatus(`Sent: "${message}"`, "green");
+            } else {
+                console.error("Cannot send 'success': Port or channel not ready.");
+                updateStatus("Error: Not connected", "red");
+            }
+        });
+
+        cancelBtn.addEventListener("click", () => {
+            if (messagePort && isChannelReady) {
+                const message = "esim_web_checkout_cancel";
+                console.log(`Sending message to Android: ${message}`);
+                messagePort.postMessage(message);
+                updateStatus(`Sent: "${message}"`, "red");
+            } else {
+                console.error("Cannot send 'cancel': Port or channel not ready.");
+                updateStatus("Error: Not connected", "red");
+            }
+        });
+
+        // Helper function to update the on-screen status
+        function updateStatus(message, color) {
+            statusMessage.textContent = message;
+            
+            // Remove old color classes
+            statusMessage.classList.remove(
+                "text-yellow-600", "dark:text-yellow-400",
+                "text-green-600", "dark:text-green-400",
+                "text-red-600", "dark:text-red-400",
+                "text-blue-600", "dark:text-blue-400"
+            );
+            
+            // Add new color class
+            switch (color) {
+                case "green":
+                    statusMessage.classList.add("text-green-600", "dark:text-green-400");
+                    break;
+                case "red":
+                    statusMessage.classList.add("text-red-600", "dark:text-red-400");
+                    break;
+                case "blue":
+                    statusMessage.classList.add("text-blue-600", "dark:text-blue-400");
+                    break;
+                default: // yellow
+                    statusMessage.classList.add("text-yellow-600", "dark:text-yellow-400");
+                    break;
+            }
+        }
+    </script>
 </body>
 </html>
