@@ -1,38 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Minimal CCT Test</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eSIM Checkout Test</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+      padding: 2rem;
+    }
+    button {
+      margin: 1rem;
+      padding: 1rem 2rem;
+      font-size: 1rem;
+      cursor: pointer;
+    }
+    .success { background-color: #4CAF50; color: white; }
+    .failure { background-color: #f44336; color: white; }
+  </style>
 </head>
 <body>
+  <h1>eSIM Checkout Test Page</h1>
+  <p>Use the buttons below to send messages to the Android app via Chrome Custom Tabs.</p>
 
-    <h1>Minimal PostMessage Test</h1>
+  <button id="success" class="success">Send Success Message</button>
+  <button id="failure" class="failure">Send Failure Message</button>
 
-    <button onclick="sendMsg('esim_web_checkout_success')" style="font-size: 20px; padding: 15px; margin: 10px; background-color: #4CAF50; color: white;">
-        Send SUCCESS
-    </button>
-    
-    <button onclick="sendMsg('esim_web_checkout_failure')" style="font-size: 20px; padding: 15px; margin: 10px; background-color: #f44336; color: white;">
-        Send FAILURE
-    </button>
+  <script>
+    const SUCCESS_MESSAGE = "esim_web_checkout_success";
+    const FAILURE_MESSAGE = "esim_web_checkout_failure";
 
-    <script>
-        function sendMsg(message) {
-            console.log('Attempting to send:', message);
+    // Try sending message via postMessage API
+    async function sendMessage(message) {
+      if (!window.chrome || !window.chrome.webview && !window.postMessage) {
+        alert("postMessage API not supported in this context");
+        return;
+      }
 
-            try {
-                // This is the correct API to talk to the app
-                CustomTabsClient.postMessage(message, null);
-                
-                // Show a success alert in the browser
-                alert('Message SENT: ' + message);
-
-            } catch (e) {
-                console.error('Error sending message:', e);
-
-                // Show an error alert in the browser
-                alert('ERROR: CustomTabsClient.postMessage is not available.\n\nAre you in a Custom Tab?\n\n' + e);
-            }
+      try {
+        // Chrome Custom Tabs communication
+        if (window.postMessage) {
+          console.log("Sending message:", message);
+          window.postMessage(message, "*");
+        } else {
+          alert("postMessage not available");
         }
-    </script> </body>
+      } catch (err) {
+        console.error("Error posting message:", err);
+      }
+    }
+
+    document.getElementById("success").addEventListener("click", () => {
+      sendMessage(SUCCESS_MESSAGE);
+    });
+
+    document.getElementById("failure").addEventListener("click", () => {
+      sendMessage(FAILURE_MESSAGE);
+    });
+  </script>
+</body>
 </html>
