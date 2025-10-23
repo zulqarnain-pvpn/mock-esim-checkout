@@ -3,102 +3,55 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>eSIM Checkout Test</title>
+  <title>eSIM Checkout</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-  </style>
 </head>
-
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
   <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg text-center">
-    <h1 class="text-3xl font-bold text-gray-800 mb-2">eSIM Checkout Message Test</h1>
+    <h1 class="text-3xl font-bold text-gray-800 mb-2">eSIM Checkout</h1>
     <p class="text-sm text-gray-500 mb-6">
-      Click a button below to send a message to the native app (WebView or Custom Tab).
+      Works with Chrome Custom Tabs messaging.
     </p>
 
-    <div id="connection-status"
-      class="mb-4 text-lg font-semibold text-red-600 border-2 border-red-200 bg-red-50 p-3 rounded-lg">
-      Status: Not Connected ❌
+    <div id="status" class="mb-4 text-lg font-semibold text-red-600 border-2 border-red-200 bg-red-50 p-3 rounded-lg">
+      Status: Not connected ❌
     </div>
 
-    <div id="result-message" class="hidden p-4 rounded-lg font-semibold transition duration-300 mb-6 border"></div>
+    <button id="btnSuccess"
+      class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md mb-3">
+      ✅ Send SUCCESS
+    </button>
+    <button id="btnCancel"
+      class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md">
+      ❌ Send CANCEL
+    </button>
 
-    <div class="space-y-4">
-      <button onclick="appEventHandler('esim_web_checkout_success', '')"
-        class="w-full bg-green-600 hover:bg-green-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200">
-        ✅ Send SUCCESS
-      </button>
-
-      <button onclick="appEventHandler('esim_web_checkout_cancel', '')"
-        class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200">
-        ❌ Send CANCEL
-      </button>
-    </div>
-
-    <p class="text-xs text-gray-400 mt-6">
-      This page works in both Android WebView and Chrome Custom Tabs.
-    </p>
+    <p class="text-xs text-gray-400 mt-6">Will update when Android connects.</p>
   </div>
 
   <script>
-    const statusDiv = document.getElementById('connection-status');
-    const resultDiv = document.getElementById('result-message');
+    const statusDiv = document.getElementById("status");
 
-    // Update connection status dynamically when Android sends a message
+    // 1️⃣ Listen for Android → Web messages
     window.addEventListener("message", (event) => {
-      console.log("Message received from Android:", event.data);
+      console.log("📨 Message from Android:", event.data);
       if (event.data === "hello_from_android") {
-        statusDiv.textContent = "Status: Connected to Android App ✅";
-        statusDiv.classList.remove('text-red-600', 'border-red-200', 'bg-red-50');
-        statusDiv.classList.add('text-green-600', 'border-green-200', 'bg-green-50');
+        statusDiv.textContent = "Status: Connected ✅";
+        statusDiv.classList.remove("text-red-600", "border-red-200", "bg-red-50");
+        statusDiv.classList.add("text-green-600", "border-green-200", "bg-green-50");
       }
     });
 
-    // Universal function to send messages to Android (WebView or Custom Tab)
-    function appEventHandler(message, response, additionalProps = {}) {
-      const payload = {
-        message: message,
-        response: response,
-        ...additionalProps
-      };
+    // 2️⃣ Send messages Web → Android
+    document.getElementById("btnSuccess").onclick = () => {
+      console.log("Sending success...");
+      window.postMessage("esim_web_checkout_success", "*");
+    };
 
-      console.log("Attempting to send message to Android:", payload);
-
-      // 1️⃣ WebView bridge (Android or iOS)
-      let _nativeHandler = null;
-      if (window.chrome && window.chrome.webview) {
-        _nativeHandler = window.chrome.webview;
-      } else if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.addonEventHandler) {
-        _nativeHandler = window.webkit.messageHandlers.addonEventHandler;
-      }
-
-      if (_nativeHandler && _nativeHandler.postMessage) {
-        console.log("Using native bridge for message delivery...");
-        _nativeHandler.postMessage(payload);
-        showResult(`Sent via native bridge: ${message}`, true);
-        return;
-      }
-
-      // 2️⃣ Fallback: Chrome Custom Tabs postMessage API
-      try {
-        console.log("Using window.postMessage fallback...");
-        window.postMessage(JSON.stringify(payload), "*");
-        showResult(`Sent via postMessage: ${message}`, true);
-      } catch (e) {
-        console.error("Failed to send message:", e);
-        showResult("Error sending message. Check Android logs.", false);
-      }
-    }
-
-    function showResult(text, success) {
-      resultDiv.textContent = text;
-      resultDiv.classList.remove('hidden');
-      resultDiv.classList.remove('bg-red-100', 'bg-green-100', 'text-red-800', 'text-green-800');
-      resultDiv.classList.add(success ? 'bg-green-100' : 'bg-red-100');
-      resultDiv.classList.add(success ? 'text-green-800' : 'text-red-800');
-    }
+    document.getElementById("btnCancel").onclick = () => {
+      console.log("Sending cancel...");
+      window.postMessage("esim_web_checkout_cancel", "*");
+    };
   </script>
 </body>
 </html>
