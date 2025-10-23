@@ -1,78 +1,116 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MOCK eSIM Checkout Test</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
-    body { font-family: 'Inter', sans-serif; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MOCK eSIM Checkout Test</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+    </style>
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-  <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg text-center">
-    <h1 class="text-3xl font-bold text-gray-800 mb-2">CCT Message Channel Test</h1>
-    <p class="text-sm text-gray-500 mb-6">Click a button below to send a status message back to the native app.</p>
+    <div class="bg-white p-8 rounded-xl shadow-2xl w-full max-w-lg text-center">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">CCT Message Channel Test</h1>
+        <p class="text-sm text-gray-500 mb-6">Click a button below to send a status message back to the native app.</p>
 
-    <div id="connection-status"
-      class="mb-4 text-lg font-semibold text-red-600 border-2 border-red-200 bg-red-50 p-3 rounded-lg">
-      Status: Not Connected ❌
+        <div id="connection-status" class="mb-4 text-lg font-semibold text-red-600 border-2 border-red-200 bg-red-50 p-3 rounded-lg">
+            Status: Not Connected ❌
+        </div>
+
+        <script>
+            // --- This is the "Proof of Life" log ---
+            // We need to see this in the remote debugger console
+            console.log("---- Esim Web Page Script v4 (with appEventHandler) LOADED ----");
+
+            // This variable will hold the communication port to the Android app.
+            let androidAppPort = null;
+
+            // 1. Listen for the initial handshake from the Android app
+            window.addEventListener("message", (event) => {
+                const statusDiv = document.getElementById('connection-status');
+                
+                // Check if this is the handshake message from your Android app
+                if (event.data === "hello_from_android") {
+                    console.log("Android app handshake received!");
+                    
+                    if (event.ports && event.ports[0]) {
+                        // Save the port. This is the channel to reply on.
+                        androidAppPort = event.ports[0];
+                        console.log("Communication port saved.");
+                        
+                        // Update UI to show we are connected
+                        statusDiv.textContent = "Status: Connected to Android App ✅";
+                        statusDiv.classList.remove('text-red-600', 'border-red-200', 'bg-red-50');
+                        statusDiv.classList.add('text-green-600', 'border-green-200', 'bg-green-50');
+                    } else {
+                        console.error("No port received with handshake.");
+                        statusDiv.textContent = "Status: Handshake received, but no port! ❌";
+                    }
+                } else {
+                    console.log("Received a non-handshake message:", event.data);
+                }
+            });
+
+            /**
+             * --- THIS IS THE FIXED FUNCTION ---
+             * This function now uses the CCT postMessage channel (androidAppPort)
+             * instead of the non-existent WebView bridge.
+             */
+            function appEventHandler(message, response) {
+                const resultDiv = document.getElementById('result-message');
+                console.log(`Attempting to send message: ${message}`);
+
+                // Check if we are connected to the app
+                if (androidAppPort) {
+                    // 
+                    // !!! THIS IS THE CORRECT API !!!
+                    // We use the SAVED PORT, not window.chrome.webview
+                    // Your Android code is expecting a String, so we just send the 'message' variable.
+                    //
+                    androidAppPort.postMessage(message);
+                    
+                    // Update UI
+                    console.log(`Message sent: ${message}`);
+                    resultDiv.textContent = `Message Sent: ${message}. Check Android Logcat!`;
+                    resultDiv.classList.remove('hidden');
+                    resultDiv.classList.remove('bg-red-100', 'bg-green-100');
+
+                    if (message.includes('success')) {
+                        resultDiv.classList.add('bg-green-100', 'text-green-800');
+                    } else {
+                        resultDiv.classList.add('bg-red-100', 'text-red-800');
+                    }
+                } else {
+                    // App is not connected
+                    console.error("Cannot send message: Android app port is not available.");
+                    resultDiv.textContent = 'Error: Not connected to the Android app. Please open this from the app.';
+                    resultDiv.classList.remove('hidden');
+                    resultDiv.classList.add('bg-red-100', 'text-red-800');
+                }
+            }
+        </script>
+
+        <div id="result-message" class="hidden p-4 rounded-lg font-semibold transition duration-300 mb-6 border"></div>
+
+        <div class="space-y-4">
+            <button 
+                onclick="appEventHandler('esim_web_checkout_success', '')"
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
+            >
+                1. Send SUCCESS
+            </button>
+
+            <button 
+                onclick="appEventHandler('esim_web_checkout_cancel', '')"
+                class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50"
+            >
+                2. Send CANCEL
+            </button>
+        </div>
+        
+        <p class="text-xs text-gray-400 mt-6">This page now listens for the Android 'hello' handshake.</p>
     </div>
-
-    <script>
-      // Listen for messages from Android (Custom Tabs)
-      window.addEventListener("message", (event) => {
-        const statusDiv = document.getElementById('connection-status');
-
-        if (event.data === "hello_from_android") {
-          console.log("✅ Handshake received from Android!");
-
-          statusDiv.textContent = "Status: Connected to Android App ✅";
-          statusDiv.classList.remove('text-red-600', 'border-red-200', 'bg-red-50');
-          statusDiv.classList.add('text-green-600', 'border-green-200', 'bg-green-50');
-        } else {
-          console.log("📩 Received message:", event.data);
-        }
-      });
-
-      // Send message to Android via window.postMessage
-      function sendPostMessage(statusMessage) {
-        const resultDiv = document.getElementById('result-message');
-        console.log(`Attempting to send message to Android: ${statusMessage}`);
-
-        try {
-          window.postMessage(statusMessage, "*"); // ✅ Send back to Android
-          console.log(`Message sent to Android: ${statusMessage}`);
-
-          resultDiv.textContent = `Message Sent: ${statusMessage}. Check Android Logcat!`;
-          resultDiv.classList.remove('hidden', 'bg-red-100', 'bg-green-100');
-          resultDiv.classList.add(statusMessage.includes('success') ? 'bg-green-100' : 'bg-red-100');
-        } catch (e) {
-          console.error("❌ Error sending message:", e);
-          resultDiv.textContent = 'Error: Could not send message to Android.';
-          resultDiv.classList.remove('hidden');
-          resultDiv.classList.add('bg-red-100', 'text-red-800');
-        }
-      }
-    </script>
-
-    <div id="result-message"
-      class="hidden p-4 rounded-lg font-semibold transition duration-300 mb-6 border"></div>
-
-    <div class="space-y-4">
-      <button onclick="sendPostMessage('esim_web_checkout_success')"
-        class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50">
-        1. Send SUCCESS: esim_web_checkout_success
-      </button>
-
-      <button onclick="sendPostMessage('esim_web_checkout_cancel')"
-        class="w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50">
-        2. Send CANCEL: esim_web_checkout_cancel
-      </button>
-    </div>
-
-    <p class="text-xs text-gray-400 mt-6">This page listens for the Android 'hello_from_android' handshake and replies using window.postMessage().</p>
-  </div>
 </body>
 </html>
